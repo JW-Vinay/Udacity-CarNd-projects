@@ -1,0 +1,7 @@
+# Generated files
+bin/
+gen/
+
+.DS_Store
+
+writeup_template.md
