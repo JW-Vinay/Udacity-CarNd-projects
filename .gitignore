@@ -5,3 +5,9 @@ gen/
 .DS_Store
 
 writeup_template.md
+
+.ipynb_checkpoints
+*.h5
+models
+*.swp
+*.p
