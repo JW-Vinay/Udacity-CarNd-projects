@@ -61,4 +61,5 @@ Training data was chosen to keep the vehicle driving on the road. I used a combi
 Here is a visualization of the nvidia architecture
 
 ![Nvidia architecture](https://devblogs.nvidia.com/parallelforall/wp-content/uploads/2016/08/cnn-architecture-624x890.png)
+
 There are also some older models in the previous_models folder. particularly m2_final.h5 which has slightly fewer epochs but performs equally well on Track 1 but slightly better on Track 2.
