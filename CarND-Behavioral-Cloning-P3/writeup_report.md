@@ -39,16 +39,16 @@ The model.py file contains the code for training and saving the convolution neur
 * The architecture is described in detail later below.
 ##### 2. Attempts to reduce overfitting in the model
 The model was trained and validated on different data sets to ensure that the model was not overfitting **[lines 108 - 110]**. It was run for 10 epochs only.The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track. Data was randomly shuffled before splitting into training and validation sets. 
-Dropout was not used to stay true to the Nvidia model.
+Dropout was not used to stay true to the Nvidia model. Also initial uses of Dropout didn't really help with the training.
 Maxpooling was not used because it tends to make output slighty invariant to input change which is not really needed here when attempting to center the car to the middle of the lane.
 I also generalized the model by generating more training data by driving the car in the clockwise direction on the track so it is not biased to any one direction.
 This was in a separate csv file 'dl2.csv' **[line 28]**. This was read and added to the training set.
 The validation set helped determine if the model was over or under fitting. The ideal number of epochs was in the range of 7-10 (I went with 10) as evidenced by the final output video final_run.mp4. For any values greater than 10 epochs I could see the MSE increasing on the validation set.
-I will probably experiment later with dropouts as well.
+I will probably experiment later with dropouts & l2 regularization again as well.
 ##### 3. Model parameter tuning
 The model used an adam optimizer, so the learning rate was not tuned manually. I started with initial learning rate of 0.001 (default for adam optimizer) (model.py line 113).
 ##### 4. Appropriate training data
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving in the counter clock wise & clock direction to generalize the model. I then preprocessed the collected training data by adding horizontally flipped version of the images (left, right & center camera) to deal with left biases. Before passing it through the model in batches the data was shuffled randomly.
+Training data was chosen to keep the vehicle driving on the road. I used a combination of lane driving in the counter clock wise & clock direction to generalize the model. I then preprocessed the collected training data by adding horizontally flipped version of the images (left, right & center camera) to deal with left biases. Before passing it through the model in batches the data was shuffled randomly.
 ##### 5. Final Model Architecture
 * As mentioned previously I used the Nvidia Neural Network model archictecture. It consists of the following layers (lines 84-99)
     1. It has 3 convolutional layers with filter size 5X5. It uses a stride of 2X2 along with valid padding
