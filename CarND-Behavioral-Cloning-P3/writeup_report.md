@@ -50,16 +50,16 @@ The model used an adam optimizer, so manual tuning was not necessary. I started 
 ##### 4. Appropriate training data
 Training data was chosen to keep the vehicle driving on the road. I used a combination of lane driving in the counter clock wise & clock direction to generalize the model. I then preprocessed the collected training data by adding horizontally flipped version of the images (left, right & center camera) to deal with left biases. Before passing it through the model in batches the data was shuffled randomly.
 
-example of images:
-Example 1
-![Original Image](augmented/1495213584.jpg "Original Image")
-![Brightness Adjusted Image](augmented/1495213584_brightened.jpg "Brightness Adjusted Image")
-![Flipped Image](augmented/1495213584_flipped.jpg "Flipped Image")
+Example of images:
+1. Example 1 (Original, Random Brightness Adjusted, Flipped Image)
+   * ![Original Image](augmented/1495213584.jpg "Original Image")
+   * ![Brightness Adjusted Image](augmented/1495213584_brightened.jpg "Brightness Adjusted Image")
+   * ![Flipped Image](augmented/1495213584_flipped.jpg "Flipped Image")
 
-Example 2
-![Original Image](augmented/1495213585.jpg "Original Image")
-![Brightness Adjusted Image](augmented/1495213585_brightened.jpg "Brightness Adjusted Image")
-![Flipped Image](augmented/1495213585_flipped.jpg "Flipped Image")
+2. Example 2 (Original, Random Brightness Adjusted, Flipped Image)
+   * ![Original Image](augmented/1495213585.jpg "Original Image")
+   * ![Brightness Adjusted Image](augmented/1495213585_brightened.jpg "Brightness Adjusted Image")
+   * ![Flipped Image](augmented/1495213585_flipped.jpg "Flipped Image")
 
 ##### 5. Final Model Architecture
 * As mentioned previously I used the Nvidia Neural Network model archictecture. It consists of the following layers (lines 84-99)
