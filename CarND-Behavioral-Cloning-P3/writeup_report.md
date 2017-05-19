@@ -38,24 +38,25 @@ The model.py file contains the code for training and saving the convolution neur
 * Eventually I switched to the nvidia neural network architecture described in the paper linked below. [Nvidia Paper](http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf)
 * The architecture is described in detail later below.
 ##### 2. Attempts to reduce overfitting in the model
-The model was trained and validated on different data sets to ensure that the model was not overfitting **[lines 108 - 110]**. It was run for 10 epochs only.The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track. Data was randomly shuffled before splitting into training and validation sets. 
-Dropout was not used to stay true to the Nvidia model. Also initial uses of Dropout didn't really help with the training.
+The model was trained and validated on different data sets to ensure that the model was not overfitting **[lines 115 - 118]**. It was run for 5 epochs only.The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track. Data was randomly shuffled before splitting into training and validation sets. 
+Dropout was not used to stay true to the Nvidia model. Also initial uses of Dropout didn't really help with the training. I eventually used l2 regularization to avoid overfitting by penalizing all the weights in the fully connected layers and convolution layers. I used a beta value  of 0.001 (line 86-107).
 Maxpooling was not used because it tends to make output slighty invariant to input change which is not really needed here when attempting to center the car to the middle of the lane.
 I also generalized the model by generating more training data by driving the car in the clockwise direction on the track so it is not biased to any one direction.
 This was in a separate csv file 'dl2.csv' **[line 28]**. This was read and added to the training set.
-The validation set helped determine if the model was over or under fitting. The ideal number of epochs was in the range of 7-10 (I went with 10) as evidenced by the final output video final_run.mp4. For any values greater than 10 epochs I could see the MSE increasing on the validation set.
-I will probably experiment later with dropouts & l2 regularization again as well.
+The validation set helped determine if the model was over or under fitting. The ideal number of epochs was in the range of 5-7 (I went with 5) as evidenced by the final output video final_run.mp4. For any values greater than 7 epochs I could see the MSE increasing on the validation set.
+I initially used 10 epochs and a different parameter value set but changed things around when I fixed an unforseen bug about the initial color model of the images. Also this model works way better on the challenge track (almost completing it). Proving that it was not overfitted. I will probably tweak it later to complete the challenge track as well.
 ##### 3. Model parameter tuning
-The model used an adam optimizer, so the learning rate was not tuned manually. I started with initial learning rate of 0.001 (default for adam optimizer) (model.py line 113).
+The model used an adam optimizer, so manual tuning was not necessary. I started with initial learning rate of 0.001 but then switched to 0.0001 since it seemed to further reduce validation loss and perform flawlessly on track 1 and pretty well on track 2 as well.(model.py line 121).
 ##### 4. Appropriate training data
 Training data was chosen to keep the vehicle driving on the road. I used a combination of lane driving in the counter clock wise & clock direction to generalize the model. I then preprocessed the collected training data by adding horizontally flipped version of the images (left, right & center camera) to deal with left biases. Before passing it through the model in batches the data was shuffled randomly.
 ##### 5. Final Model Architecture
 * As mentioned previously I used the Nvidia Neural Network model archictecture. It consists of the following layers (lines 84-99)
     1. It has 3 convolutional layers with filter size 5X5. It uses a stride of 2X2 along with valid padding
     2. The output is passed through 2 more convolutional layers with filter size 3X3. The stride used is 1X1 along with valid padding.
-    3. Each convolution layer is followed by a RELU activation function.
+    3. Each convolution layer is followed by a Leaky ELU activation function. I initially used RELU but switched to ELU because they have smoother derivates at 0 and should therefore be better at predicting continous values.
     4. The outputs are flattened next before passing through the fully connected layers.
-    5. This output is then passed through 4 fully connected layers followed by the final logit (also a fc layer) which results in the output (steering angle)
+    5. This output is then passed through 3 fully connected layers followed by the final logit (also a fc layer) which results in the output (steering angle).
+    6. Each Fully connected layer (except the logit) is followed by an ELU activation function.
 * I used Keras to implement this sequential model. Hence I normalized the images in the model using a lambda layer. I also cropped each image as it passed through the models to remove the top 60 pixels and bottom 20 pixels.
 
 Here is a visualization of the nvidia architecture
