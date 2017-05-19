@@ -3,24 +3,24 @@ import numpy as np
 import cv2
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
-from keras.layers import Input, Flatten, Dense, Lambda, Cropping2D
+from keras.layers import Input, Flatten, Dense, Lambda, Cropping2D, Dropout, ELU
 from keras.models import Sequential
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
+from keras.regularizers import l2
+from keras.optimizers import Adam
 
-EPOCHS = 10
+EPOCHS = 5
 
-# Read data from the CSV file.
 def read_data(path, skip_first=False):
   lines = []
   with open(path) as csvfile:
     reader = csv.reader(csvfile)
-    for line in reader:
-      if skip_first:
+    for i,line in enumerate(reader):
+      if skip_first and i == 0:
         continue
       lines.append(line)
   return lines                
-
 
 def load_data():
   lines = []
@@ -28,12 +28,11 @@ def load_data():
   l2 = read_data('data/dl2.csv')
   lines.extend(l1)
   lines.extend(l2)
+  print(len(l1))
+  print(len(l2))
   return lines
 
-# Generator function to generate data without holding all images in memory.
-# All the 3 camera images are collected & augmented by randomly adjusting brightness.
-# Horizontally flipped versions of the image are generated and added to the dataset.
-# Steering angle for left & right images are corrected by a factor.
+
 def generator(lines, batch_size=32):
   num_samples = len(lines)
   print('num samples', num_samples)
@@ -48,11 +47,12 @@ def generator(lines, batch_size=32):
           for index in range(3):
               path = batch_sample[index]
               tokens = path.split('/')
-              filename = tokens[-1]
-              folder = tokens[-2]
+              filename = tokens[-1].strip()
+              folder = tokens[-2].strip()
               updated_path = "data/" + folder + "/" + filename
               image = cv2.imread(updated_path)
-              images.append(image)
+ #             print('updated path', updated_path)
+              images.append(convert_bgr_to_rgb(image))
           center_steering_angle = float(batch_sample[3])
           left_steering_angle = center_steering_angle + correction
           right_steering_angle = center_steering_angle  - correction
@@ -70,7 +70,11 @@ def generator(lines, batch_size=32):
         y_train = np.array(augmented_measurements)
         yield X_train, y_train
 
-# Add random brightness to image
+def convert_bgr_to_rgb(image):
+  b,g,r = cv2.split(image)       # get b,g,r
+  rgb_img = cv2.merge([r,g,b])     # switch it to rgb
+  return rgb_img
+
 def augment_brightness(image):
   hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
   brightness = 0.25 +  np.random.uniform()
@@ -78,23 +82,28 @@ def augment_brightness(image):
   rgb_image = cv2.cvtColor(hsv_image,cv2.COLOR_HSV2RGB)
   return rgb_image
 
-# Sequential Neural network model. Using keras. The input is normalized using Lambda function.
-# Then cropped using the Cropping 2D function.
-# layers consist of 3 5X5 strided convolutional layers followed by 2 3X3 convolutional layers and then 4 fully connected layer.
 def get_model():
   model = Sequential()
   model.add(Lambda(lambda x: (x/255.0) -0.5, input_shape=(160,320,3)))
   model.add(Cropping2D(cropping=((60,20),(0,0))))
-  model.add(Convolution2D(24,5,5, subsample=(2,2), activation='relu'))
-  model.add(Convolution2D(36,5,5, subsample=(2,2), activation='relu'))
-  model.add(Convolution2D(48,5,5, subsample=(2,2), activation='relu'))
-  model.add(Convolution2D(64,3,3, activation='relu'))
-  model.add(Convolution2D(64,3,3, activation='relu'))
+  model.add(Convolution2D(24,5,5, subsample=(2,2), activation='elu', W_regularizer=l2(0.001)))
+  model.add(Convolution2D(36,5,5, subsample=(2,2), activation='elu', W_regularizer=l2(0.001)))
+  model.add(Convolution2D(48,5,5, subsample=(2,2), activation='elu', W_regularizer=l2(0.001)))
+  model.add(Convolution2D(64,3,3, activation='elu', W_regularizer=l2(0.001)))
+  model.add(Convolution2D(64,3,3, activation='elu', W_regularizer=l2(0.001)))
   model.add(Flatten())
-  model.add(Dense(1164))
-  model.add(Dense(100))
-  model.add(Dense(50))
-  model.add(Dense(10))
+  #model.add(Dense(1164))
+  #model.add(ELU())
+  #model.add(Dropout(0.5))
+  model.add(Dense(100, W_regularizer=l2(0.001)))
+  model.add(ELU())
+  #model.add(Dropout(0.5))
+  model.add(Dense(50, W_regularizer=l2(0.001)))
+  model.add(ELU())
+  #model.add(Dropout(0.5))
+  model.add(Dense(10, W_regularizer=l2(0.001)))
+  model.add(ELU())
+  #model.add(Dropout(0.5))   
   model.add(Dense(1))
   return model
 
@@ -102,7 +111,6 @@ def get_model():
 def get_samples_per_epoch(data):
   return len(data) * 6
 
-# Adam optimizer used by the model and mean squared error (mse) is used as loss function to compute loss.
 def main():
   data = load_data()
   train_data, validation_data = train_test_split(data, test_size=0.2)
@@ -110,7 +118,8 @@ def main():
   validation_generator = generator(validation_data)
   print('Training Data Len', len(train_data))
   model = get_model()
-  model.compile(optimizer='adam', loss='mse')
+  adam  = Adam(lr=0.0001)
+  model.compile(optimizer=adam, loss='mse')
   samples_per_epoch = get_samples_per_epoch(train_data)
   validations_per_epoch = get_samples_per_epoch(validation_data)
   model.fit_generator(generator=training_generator, samples_per_epoch= samples_per_epoch, nb_val_samples=validations_per_epoch, validation_data=validation_generator, nb_epoch=EPOCHS, verbose=1)
