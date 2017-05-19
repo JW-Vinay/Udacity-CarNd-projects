@@ -1,6 +1,8 @@
 import csv
 import numpy as np
 import cv2
+import time
+import random
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 from keras.layers import Input, Flatten, Dense, Lambda, Cropping2D, Dropout, ELU
@@ -11,7 +13,9 @@ from keras.regularizers import l2
 from keras.optimizers import Adam
 
 EPOCHS = 5
+MAX_IMAGE_SAVE = 2
 
+# read data from csv files
 def read_data(path, skip_first=False):
   lines = []
   with open(path) as csvfile:
@@ -20,8 +24,9 @@ def read_data(path, skip_first=False):
       if skip_first and i == 0:
         continue
       lines.append(line)
-  return lines                
+  return lines
 
+# load & read driving data from csvs.
 def load_data():
   lines = []
   l1 = read_data('data/driving_log.csv', True)
@@ -32,6 +37,23 @@ def load_data():
   print(len(l2))
   return lines
 
+# save augmented image to disk
+random_count = 0
+def save_adjusted_img(original, brightness_adjusted, flipped):
+  global random_count
+  if random_count < 2:
+    timestamp = int(round(time.time()))
+    orig_path = 'augmented/' + str(timestamp)
+    write_image(original, orig_path)
+    write_image(brightness_adjusted, orig_path + '_brightened')
+    write_image(flipped, orig_path + '_flipped')
+    random_count += 1
+
+# save image to disk
+def write_image(image, path):
+  path += '.jpg'
+  print(path)
+  cv2.imwrite(path, image)
 
 def generator(lines, batch_size=32):
   num_samples = len(lines)
@@ -52,17 +74,23 @@ def generator(lines, batch_size=32):
               updated_path = "data/" + folder + "/" + filename
               image = cv2.imread(updated_path)
  #             print('updated path', updated_path)
-              images.append(convert_bgr_to_rgb(image))
+              rgb_image = convert_bgr_to_rgb(image)
+              images.append(rgb_image)
           center_steering_angle = float(batch_sample[3])
           left_steering_angle = center_steering_angle + correction
           right_steering_angle = center_steering_angle  - correction
           measurements.extend([center_steering_angle, left_steering_angle, right_steering_angle])
 
         augmented_images, augmented_measurements = [], []
-        for image, measurement in zip(images, measurements):
-            augmented_images.append(augment_brightness(image))
+        i1  = random.randint(0, MAX_IMAGE_SAVE)
+        i2  = random.randint(0, MAX_IMAGE_SAVE)
+        for index, (image, measurement) in enumerate(zip(images, measurements)):
+            brightness_adjusted = augment_brightness(image)
+            augmented_images.append(brightness_adjusted)
             augmented_measurements.append(measurement)
             flipped_img = cv2.flip(image,1)
+            if index == i1 or index == i2:
+              save_adjusted_img(image, brightness_adjusted, flipped_img)
             augmented_images.append(augment_brightness(flipped_img))
             augmented_measurements.append(measurement*-1.0)
 
@@ -70,6 +98,7 @@ def generator(lines, batch_size=32):
         y_train = np.array(augmented_measurements)
         yield X_train, y_train
 
+# convert a valid bgr image to rgb
 def convert_bgr_to_rgb(image):
   b,g,r = cv2.split(image)       # get b,g,r
   rgb_img = cv2.merge([r,g,b])     # switch it to rgb
@@ -103,7 +132,15 @@ def get_model():
   #model.add(Dropout(0.5))
   model.add(Dense(10, W_regularizer=l2(0.001)))
   model.add(ELU())
-  #model.add(Dropout(0.5))   
+  #model.add(Dropout(0.5))
+  #model.add(Dense(1164,W_regularizer=l2(0.01)))
+  #model.add(Dropout(0.5))
+  #model.add(Dense(100, W_regularizer=l2(0.01)))
+  #model.add(Dropout(0.5))
+  #model.add(Dense(50,W_regularizer=l2(0.01)))
+  #model.add(Dropout(0.5))
+  #model.add(Dense(10,W_regularizer=l2(0.01)))
+  #model.add(Dropout(0.5))
   model.add(Dense(1))
   return model
 
