@@ -26,10 +26,10 @@ You're reading it!
 
 The code for this step is contained in the code cell number 3 & 4 of the IPython notebook (vehicle_detection). I basically used skimage.feature.hog to extract hog features.
 
-I started by reading in all the `vehicle` and `non-vehicle` images (code cell 3).  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
+I started by reading in all the `vehicle` and `non-vehicle` images (code cell 3).
 
 
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like for parameter combinations and then used that to sort of identify the final parameter values I would be using. The code for this can be seen in cell number 303. Here's an example below that simply visualized the hog features for random vehicle & non vehcile images. I used the following hog parameters `orientations=11`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)` and grayscaled image
+I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like for parameter combinations and then used that to sort of identify the final parameter values I would be using. The code for this can be seen in cell number 303. Here's an example below that simply visualized the hog features for random vehicle & non vehicle images. I used the following hog parameters `orientations=11`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)` and grayscaled image
 
 ![Random Vehicle and Non-Vehicle Image with hog features](output_images/random.png?raw=true)
 
@@ -37,9 +37,9 @@ My eventual feature extractor is a combination of hog features, color conversion
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
-I started trying out various combination of parameters for the feature extractor for extracting hog features, spatial binning & computing color histogram features. My final parameters selected are in code cell 45.
+I started trying out various combination of parameters for the feature extractor to extract hog features, spatially binned & color histogram features. My final parameters selected are in code cell 45.
 I tested with `orientations=8` and `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)` and finally the same with `orientations=11` which turned out to be better and hence fixed that as one of the param values.
-I selected color space based on training & testing results of classifier & hog feature extractor. I eventually zeroed down on `YCrC`b color space & used all 3 channels to extract hog features to ensure I don't loose features in any of the channels.
+I selected color space based on training & testing results of classifier & hog feature extractor. I eventually zeroed down on `YCrCb` color space & used all 3 channels to extract hog features to ensure I don't loose features in any of the channels.
 
 Final Hog, Color & Spatial Parameters used.
 ````
@@ -58,7 +58,7 @@ My final feature extractor `extract_features()` is in code cell 46. As mentioned
 In code cell 48 I use the above method to extract car & non features from the data-set provided.
 In code cell 49 I first prepare the feature vectors as a numpy array where each row is a feature vector. This is done to get the data in the right format as needed by the normalizer. I normalize the training and test data to sort of prepare it before applying any classifier.
 I use the `sklearn.preprocessing.StandardScaler` to standardize the features by removing mean and unit variance.
-I prepare the labels vector as well and finally randomly shuffle and split the data into training and test sets using `train_test_split()` method. This is then used for further for the actual classification (training & detection step). All of the above is in code cells 48 & 49.
+I prepare the labels vector as well, then randomly shuffled and then split the data into training and test sets using `train_test_split()` method. This is then used further for the actual classification (training & detection step). All of the above is in code cells 48 & 49.
 
 In Code cell 50, I actually train the classifier using `sklean.svm.LinearSVC`. It has a linear kernel. It uses training data prepared in the step above.
 Once the classifier was trained I tested its accuracy using `svc.score` on the test set. The obtained accuracy is **98.79%**. I then save the classifier to the pickle file for future use if needed.
@@ -69,7 +69,7 @@ Once the classifier was trained I tested its accuracy using `svc.score` on the t
 
 I wrote a function called `find_cars()` based on the lectures that computes the hog features, color & spatial features and then makes predictions. It then uses the scales, cells_per_block and window size to define bounding box for each positive detection. The function is available in code cell 261.
 
-Instead of a sliding window approach I sub-sampled hog features to get all overlaying windows. I initally tested with a single scale of 1.5, but noticed it did not detect cars on all images. Hence I went with a multi-scale approach and experimented with random scales before zeroing on 1.0, 1.5 & 1.7 as my 3 scales. I tried higher scale values of 2.0, 3.5 etc. and greater realized that with these y_ranges it was not detecting all the cars. The current ones chosen detect multiple overlapping boxes, but its better than missing out on information. I then played with different Y_range values to match up with these scales to finally create a pipeline that uses 5 different y_ranges along with these scales. I experimented with `cells_per_block=1` which was causing many false positives and overlaps and hence setlled on `cells_per_block=2`which gives the right amount of overlap.
+Instead of a sliding window approach I sub-sampled hog features to get all overlaying windows. I initally tested with a single scale of 1.5, but noticed it did not detect cars on all images. Hence I went with a multi-scale approach and experimented with random scales before zeroing on 1.0, 1.5 & 1.7 as my 3 scales. I tried higher scale values of 2.0, 3.5 etc. and greater but realized that with these y_ranges it was not detecting all the cars. The current ones chosen detect multiple overlapping boxes, but I guess its better than missing out on information. I then played with different Y_range values to match up with these scales to finally create a pipeline that uses 5 different y_ranges (y_start and y_stop) along with these scales. I experimented with `cells_per_block=1` which was causing many false positives and overlaps and hence setlled on `cells_per_block=2`which gives the right amount of overlap.
 
 In the `find_cars()` function I used a window size of 64. I experimented with random higher values but settled on 64 since it was giving enough information and I din't want to increase the size of the bounding box further.
 
@@ -89,8 +89,8 @@ Here's a [link to my video result](https://youtu.be/htPAVNBgszU)
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-Code cell 37 has some functions that are basically used for building heat maps, thresholding heat maps and finally drawing labelled cars.
-I basically wrote a function `add_heat()` that adds +1 for all pixels within the windows where a positive detection is reported by the classifier. This heatmap is then thresholded to return only hot parts of the image minus the false positives(where a vehicle is detected). We then apply the `scipy.ndimage.measurements.labels()` function to count all features in an image. It sort of groups nonzero pixels belonging to a car togther to return tuple with no of cars detected. I then invoke `draw_labeled_bboxes()` to render the labeled boxes on to the copy of the image. The function basically iterate through the labels array and pixels with each car_number label value. We then form bouding box around nonzerox and nonzeroy values using min and max values.
+Code cell 37 has some functions that are basically used for building heat maps, thresholding heat maps and finally drawing labeled cars.
+I basically wrote a function `add_heat()` that adds +1 for all pixels within the windows where a positive detection is reported by the classifier. This heatmap is then thresholded to return only hot parts of the image minus the false positives(where a vehicle is detected). We then apply the `scipy.ndimage.measurements.labels()` function to count all features in an image. It sort of groups nonzero pixels belonging to a car togther to return tuple with no of cars detected. I then invoke `draw_labeled_bboxes()` to render the labeled boxes on to the copy of the image. The function basically iterate through the labels array and find pixels with each car_number label value. We then form bounding box around nonzerox and nonzeroy values using np.min and np.max.
 
 I basically experimented with each of these steps. The code for this is in code blocks 311, 314, 310. Some examples of each step:
 **Without Thresholding**
@@ -106,7 +106,7 @@ Now for the video I maintain the bounding box detections for the last 20 frames.
 The core steps are the same as described above, used across 20 frames so that there is less jumpiness/wobbly detetction in the video.
 The code for this is in code cell 293. The function is `process_frame()`. This is invoked in cell 294 where the video is processed. The class `Detection()` holds the bounding box information for the last 20 frames.
 
-Detetction examples of all the test_images:
+Detetction examples of all the test_images (Code in Cell 254):
 ![With Thresholding HeatMap](output_images/all_test_images.png?raw=true)
 
 ---
@@ -114,9 +114,9 @@ Detetction examples of all the test_images:
 ###Discussion
 
 ####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
-I faced issues with identifying the ideal scales & y range values. I had to spend a lot of time experiementing with values across different frames of images before zeroing on the 3 scale values and yranges. I also wasn't sure about the colorspace to use. I first tried HSV & RGB and I found the classifier accuracy on the lower side so I ended up trying YCrCb which seemed to work perfectly fine. All this experiementation took quite some time.
-One issue I have noticed is detections when the vehicle is sort of parallel. its hard to detect vehicle parallel vehicles since its not in the exact frame of view.
+I faced issues with identifying the ideal scales & y_range values. I had to spend a lot of time experiementing with values across different frames of images before zeroing on the 3 scale values and y_ranges. I also wasn't sure about the colorspace to use. I first tried HSV & RGB and I found the classifier accuracy on the lower side so I ended up trying YCrCb which seemed to work perfectly fine. All this experiementation took quite some time.
+One issue I have noticed is detections when the vehicle is sort of parallel to another . Its hard to detect parallel vehicles (or just about parallel where you can barely see the front of the car) since its not in the exact frame of view.
 
-I would probably like try to average the frames better & threshold based on lighting condition to improve the detection on low lighting conditions and lanes not divided by the raised median.  
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+I would probably like try to average the frames better & threshold based on lighting condition to improve the detection on low lighting conditions and when lanes are not divided by the raised median. 
+Not sure if trying a better non-linear classifier or a deep learning appraoach might give better results.
 
